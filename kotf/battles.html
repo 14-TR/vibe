@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medieval Battle Simulator</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <script type="module">
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@latest/build/three.module.js';
+
+        // Scene Setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Create Ground (Battlefield)
+        const groundGeometry = new THREE.PlaneGeometry(100, 100);
+        const groundMaterial = new THREE.MeshBasicMaterial({ color: 0x228B22, side: THREE.DoubleSide });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;  // Make it horizontal
+        scene.add(ground);
+
+        // Camera Position
+        camera.position.set(0, 30, 50);
+        camera.lookAt(0, 0, 0);
+
+        // Create Simple Knights (Using Cubes for Now)
+        const knightGeometry = new THREE.BoxGeometry(1, 2, 1);
+        const redMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const blueMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+
+        let redKnights = [];
+        let blueKnights = [];
+        const numKnights = 64;
+
+        function spawnKnights(team, material, startX) {
+            let knights = [];
+            for (let i = 0; i < numKnights; i++) {
+                let knight = new THREE.Mesh(knightGeometry, material);
+                knight.position.set(startX + (Math.random() * 10 - 5), 1, (Math.random() * 40) - 20);
+                scene.add(knight);
+                knights.push(knight);
+            }
+            return knights;
+        }
+
+        redKnights = spawnKnights("red", redMaterial, -30);
+        blueKnights = spawnKnights("blue", blueMaterial, 30);
+
+        // Animate Knights Moving Toward the Enemy
+        function animate() {
+            requestAnimationFrame(animate);
+
+            redKnights.forEach(knight => {
+                knight.position.x += 0.05;  // Move toward the center
+            });
+
+            blueKnights.forEach(knight => {
+                knight.position.x -= 0.05;  // Move toward the center
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
