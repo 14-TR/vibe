@@ -5,50 +5,68 @@ import { createSpaceship } from "./spaceship.js";
 import { createPlanet, createStarfield, addLights } from "./environment.js";
 
 export function initScene() {
+    // SCENE + CAMERA
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
 
-    // CAMERA SETUP
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 100000);
-    camera.position.set(0, 100, 5000); // Start far away
+    const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        1,
+        100000
+    );
+    camera.position.set(0, 50, 500);
 
     // RENDERER
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // LIGHTING
+    // LIGHTS, PLANET, STARS
     addLights(scene);
+    const planet = createPlanet(1000, 0x113355);
+    scene.add(planet);
 
-    // SPACESHIP
+    const stars = createStarfield(2000);
+    scene.add(stars);
+
+    // OUR VISUAL SPACESHIP MESH
     const spaceship = createSpaceship();
     scene.add(spaceship);
 
-    // PLANET
-    const planet = createPlanet();
-    scene.add(planet);
-
-    // STARFIELD
-    const stars = createStarfield();
-    scene.add(stars);
-
-    // ✅ FLY CONTROLS ✅
+    // FLY CONTROLS for the CAMERA
     const controls = new FlyControls(camera, renderer.domElement);
-    let baseSpeed = 1000; // Normal movement speed
-    let boostSpeed = 5000; // Speed when boosting
+
+    // === BOOST VARIABLES ===
+    let baseSpeed = 300;     // normal speed
+    let boostSpeed = 1500;   // boosted speed
     let isBoosting = false;
-    controls.movementSpeed = baseSpeed;
-    controls.rollSpeed = Math.PI / 24;
-    controls.autoForward = false;
-    controls.dragToLook = false;
-
-    let clock = new THREE.Clock(); // Used for smooth movement
-
-    // ✅ TRACKING BOOST ✅
     let mouseDown = false;
     let keyWDown = false;
 
-    // Mouse events to track click status
+    // Initialize movement speed
+    controls.movementSpeed = baseSpeed;
+    controls.rollSpeed = Math.PI / 24;
+    controls.dragToLook = false;
+
+    // BOOST HELPER FUNCTIONS
+    function enableBoost() {
+        if (!isBoosting) {
+            console.log("🚀 BOOST ACTIVATED!");
+            controls.movementSpeed = boostSpeed;
+            isBoosting = true;
+        }
+    }
+
+    function disableBoost() {
+        if (isBoosting) {
+            console.log("🛑 BOOST ENDED");
+            controls.movementSpeed = baseSpeed;
+            isBoosting = false;
+        }
+    }
+
+    // MOUSE events
     window.addEventListener("mousedown", () => {
         mouseDown = true;
         if (keyWDown) enableBoost();
@@ -58,7 +76,7 @@ export function initScene() {
         disableBoost();
     });
 
-    // Keyboard events to track 'W' press
+    // KEYBOARD events
     window.addEventListener("keydown", (event) => {
         if (event.code === "KeyW") {
             keyWDown = true;
@@ -72,36 +90,28 @@ export function initScene() {
         }
     });
 
-    // Enable Boost
-    function enableBoost() {
-        if (!isBoosting) {
-            console.log("%c 🚀 BOOST ACTIVATED!", "color: yellow; font-weight: bold;");
-            controls.movementSpeed = boostSpeed;
-            isBoosting = true;
-        }
-    }
-
-    // Disable Boost
-    function disableBoost() {
-        if (isBoosting) {
-            console.log("%c 🛑 BOOST ENDED", "color: cyan;");
-            controls.movementSpeed = baseSpeed;
-            isBoosting = false;
-        }
-    }
+    // ANIMATION LOOP
+    const clock = new THREE.Clock();
 
     function animate() {
         requestAnimationFrame(animate);
 
         const delta = clock.getDelta();
+        // Update camera movement via FlyControls
         controls.update(delta);
 
+        // LOCK SPACESHIP IN FRONT/BELOW CAMERA
+        const offset = new THREE.Vector3(0, -8, -25);
+        offset.applyQuaternion(camera.quaternion);
+        spaceship.position.copy(camera.position).add(offset);
+        spaceship.quaternion.copy(camera.quaternion);
+
+        // RENDER
         renderer.render(scene, camera);
     }
-
     animate();
 
-    // Handle Window Resize
+    // HANDLE RESIZE
     window.addEventListener("resize", () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
